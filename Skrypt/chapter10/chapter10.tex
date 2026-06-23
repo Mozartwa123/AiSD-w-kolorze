@@ -1,0 +1,80 @@
+\documentclass[../main.tex]{subfiles} % Note the path to the main document ../ takes you up one level
+\begin{document}
+\chapter{Sortowanie}
+
+Co prawda pokazaliśmy, że dolne ograniczenie dla czasu działania dowolnego algorytmu sortującego wynosi \(\Omega(n\log n)\) jednak tylko w modelu drzew decyzyjnych, czyli dotyczy tylko wszystkich algorytmów sortujących według porównań. Jeżeli przyjmiemy inną strategię, dopuścimy randomizacje i dane wejściowe mają jakieś szczególne cechy, wg których możemy sortować to możemy nieco tę złożoność zbić. Można kombinować z drzwami van Emde Boasa (których operacje wykonywane są w czasie \(O(\log \log n)\)), z jakimś haszowaniem, jednak istnieją prostsze przykłady.
+
+\section{Sortowanie przez zliczanie - Counting sort}
+
+Pamiętam, że na WDI na jednej z list mieliśmy zadanie, w którym trzeba było zaimplementować ten algorytm w kodzie RAM. Gdyby to był chociaż assembler, to nawet potraktowałbym to, jako ciekawą, intelektualną zabawę, tylko z niewielką domieszką masochizmu. Pisanie nawet tak prostego algorytmu w kodzie RAM to czysty masochizm.
+
+Sama idea algorytmu jest prosta: przyjmujemy, że dane na wejściu są liczbami naturalnymi od 0 do \(k - 1\), wobec tego możemy zliczać w pomocniczej tablicy \(C\) wystąpienia każdej z tych liczb w tablicy wejściowej \(A\), a następnie przepisać \(C\) do \(A\), wpisując element i tyle razy ile został zliczony:
+\begin{algorithmic}
+\For{$i \gets 1 $ to  $n$} \State $C[A[i]]++$
+	 \Comment{Zwiększamy licznik wystąpienia elementu \(A[i]\)}
+\EndFor
+\State $i \gets 1$
+\For{$j \gets 0$ to  $k - 1$}
+	\While{$C[j] > 0 $}
+	\Comment{$\forall j = 0 \cdots k - 1$ przepisujemy j tyle razy do A, ile w A wystąpił}
+		\State $C[j]--$
+		\State $A[i] \gets j$
+		\State $i++$
+	\EndWhile
+\EndFor
+
+\end{algorithmic}
+
+I niby wszystko wygląda ładnie, pierwsza pętla wykona się \(n\) razy, druga wykona \(k + n\) operacji (przeiterujemy się po wszystkich k, a łączna liczba obrotów pętli while wyniesie tyle ile jest elementów w tablicy \(A\), czyli n), co da złożoności \(\Theta(n + k)\). Tylko taki algorytm jest mało użyteczny, bo sortuje tylko po wartościach z małego uniwersum, którym jest podzbiór liczb naturalnych. A my byśmy chcieli sortować stabilnie, różne obiekty, po przypisanym ich kluczom ze zbioru \(\{1, \cdots, k - 1\}\), np. słowa, po \(i\)-tej literze.
+
+\begin{tcolorbox}[colback=red!10!white,colframe=red!40!black,title=\textbf{Zakuj to!}]
+Algorytm sortujący nazywamy \textit{stabilnym}, jeżeli zachowuje kolejność elementów równych sobie, czyli na przykład dostając tablicę \([1_1, 5_1, 2_1, 2_2, 4_1, 1_2, 1_3\), zwróci \([1_1, 1_2, 1_3, 2_1, 2_2, 4_1, 5_1]\), gdzie dolne indeksy po prostu oznaczają, który raz z kolei wystąpił element o danej wartości.
+\end{tcolorbox}
+Jak się zaraz przekonamy ta na pozór nieprzydatna własność jest w niektórych przypadkach bardzo istotna.
+\newline
+Pomysł jest taki: niech teraz \(C\) będzie taką tablicą, że \(C[i]\) oznacza ilość elementów mniejszych równych i (tj. o kluczach mniejszych równych \(i\)), czyli zgrubsza mówimy, że jeżeli \(C[i]\) jest równe jakiemuś \(k\), to \(i\) jest \(k-tym\) elementem w \(A\) i powinien znaleźć się na k-tej pozycji w wynikowej tablicy (tutaj \(B\) będzie zawierać wynik sortowania).
+\(C\), możemy obliczyć najpierw zliczając elementy (jak wyżej), a potem dynamicznie liczyć \(C[i] \leftarrow C[i] + C[i - 1]\), bo ilość elementów mniejszych równych i, można rozumieć jako sumę ilości elementów mniejszych równych \(i - 1\) oraz ilości elementów równych i.
+\newline
+Dzięki takiemu na pierwszy rzut oka przekombinowanej modyfikacji jesteśmy w stanie zapewnić stabilność tego sortowania. W jaki sposób? Po skonstruowaniu C przetwarzamy tablicę A od tyłu, wówczas \(C[A[i]]\) będzie nam wystaczać pozycję elementu \(A[i]\) w docelowej posortowanej tablicy. Ale chcemy, żeby każde kolejne \(A[j] \cdot j < i \) trafiało na pozycje mniejszą od \(A[i]\), bo chcemy mieć stabilne sortowanie. Co zatem robimy? Dekrementujemy \(C[A[i]]\), dzięki czemu kolejny (idąc od tyłu) element równy \(A[i]\) trafi na pozycję o 1 mniejszą.
+
+Pseudokod przeklejam z notatek w xournalpp, w Cormenie i w notatkach Klo jest bardzo podobny.
+\begin{center}
+\includegraphics[scale=0.5]{"csort.png"}
+\end{center}
+
+W miarę przekonujący przykład też przeklejam ze swoich notatek w xournalu. Zróćmy uwagę na to co się dzieje, jak przetwarzamy na przykład \(A[3] = 4\). \(C[A[3]]\) wynosi 4 co oznacza, że \(A[3] = 4\) jest czwartym elementem i powinno trafić na pozycję czwartą. Ale jednocześnie chcemy, że jeżeli pojawi się kolejny element równy \(A[3]\) - chcemy aby trafił na pozycję \(4 - 1 = 3\), co dzieje się w przypadku \(A[1]\), dlatego \(C[A[3]]\) dekrementujemy.
+\includegraphics[scale=0.4]{"csexample.png"}
+
+\section{Sortowanie kubełkowe - Bucket sort}
+
+Tutaj wkracza losowość - o \(n\) danych na wejściu zakładamy, że są z rozkładu jednostajnego \(U[0,1]\). To oznacza, że są losowymi liczbami z przedziału \([0, 1]\) oraz że wylosowanie każdej liczby z tego przedziału jest jednakowo prawdopodobne. Idea algorytmu jest prosta, tworzymy \(n\) kubełków (w postaci tablic lub list), takich, że do \(i\)-tego \(\forall i = 0, \cdots, n - 1\) kubełka trafią liczby z przedziału \([\frac{i}{n}, \frac{i+1}{n}]\). Łatwo zauważyć (przynajmniej intuicyjnie), że prawdopodobieństwo, że element trafi do jakiegoś konkretnego kubełka wynosi \(\frac{1}{n}\), bo mamy \(n\) przedziałów i do każdego element może trafić z jednakowym prawdopodobnieństwem. Następnie sortujemy te kubełki, najlepiej
+jakimś stabilnym sortowaniem, zwykle wybiera się do tego insert-sort (ze względu na sortowanie w miejscu, wspomnianą stabilność i jak się okaże - nie psucie czasu oczekiwanego), następnie łączymy te kubełki w wynikową - posortowaną tablicę.
+
+Na chłopski rozum - pomysł jest kiepski, w najgorszym wypadku wszystkie \(n\) elementów trafi do jednego kubełka i sortowanie zajmie czas kwadratowy. Jednak oczekiwany czas (czyli \textit{statystycznie najczęstszy}) zajmie czas liniowy, pokażemy zatem następujące twierdzenie:
+
+\newtheorem{theorem}{Twierdzenie}
+\begin{theorem}
+Bucket-sort działa w oczekiwanym czasie \(O(n)\)
+\newline
+dowód:
+\end{theorem}
+Niech \(X_i\) będzie zmienną losową oznaczającą rozmiar kubełka. Obliczmy prawdopodobieństwo, że rozmiar tego kubełka ma rozmiar \(k\). Skoro trafiło tam \(k\) elementów, oznacza to, że spośród \(n\) losowo wybranych elementów, \(k\) trafiło do \(i\)-tego kubełka - zatem mamy sytuację, w której przeprowadzamy \(n\) prób i interesuje nas prawdopodobieństwo, że \(k\) zakończyło się sukcesem, zatem mamy do czynienia z rozkładem Bernoullego (konkretnie \(B(n, \frac{1}{n})\), bo mamy n prób i prawdopodobieństwo sukcesu - element trafi do \(i\)-tego kubełka wynosi \(\frac{1}{n}\), jak powiedzieliśmy wynosi \(\frac{1}{n}\)), stąd:
+
+\(P(X_i = k) = {n \choose k}(\frac{1}{n})^k(\frac{n - 1}{n})^{n - k}\)
+
+Nas jednak interesuje \(X_i^2\), bo taki będzie czas sortowania (kwadratowy względem rozmiaru kubełka), a konkretnie oczekiwana wartość \(E[X^2]\). Tutaj posłużę się już udowodnionymi z RPiSu prawidłościami. Wiemy m.in. że \(V[X] = E[X^2] - (E[X])^2 \iff E[X^2] = V[X] + (E[X])^2\), gdzie \(V[X]\) to wariancja (czyli miara tego, jak bardzo mierzone wartości odstają od wartości oczekiwanej). Ponadto (skoro \(X\)) podlega rozkładowi Bernoullego, wiemy, że:
+\begin{enumerate}
+\item \(E[X] = n \cdot \frac{1}{n} = 1\)
+\item  \(V[X] = n \cdot \frac{1}{n}(1 - \frac{1}{n}) = 1 - \frac{1}{n}\)
+\end{enumerate}
+Zatem oczekiwana długość sortowania dowolnego kubełka wynosi \(2 - \frac{1}{n}\). Zatem oczekiwany czas wszystkich sortowań to \(E[X_1^2 + \cdots + X_n^2] = E[X_1^2] + \cdots + E[X_n^2] = 2n - 1 = O(n)\). Poza sortowaniem dochodzi scalanie kubełków, ale to też zrobimy liniowo. \(\square\)
+\newline
+Pseudokod również przeklejam z notatek, nie jest trudny, ale może coś rozjaśni:
+\begin{center}
+\includegraphics[scale=0.4]{"bsort.png"}
+\end{center}
+\section{Sortowanie leksykograficzne - Radix sort}
+Chcemy sortować słowa tak jak w słowniku - w kolejności alfabetycznej (czyli w porządku leksykograficznym). Rozważymy dwie wersje tego problemu w zależności od tego, czy wszystkie słowa są tej samej długości, czy też nie.
+\subsection{Słowa tej samej długości}
+
+\end{document}
