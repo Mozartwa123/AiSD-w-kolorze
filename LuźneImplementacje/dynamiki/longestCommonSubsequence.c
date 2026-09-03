@@ -5,7 +5,7 @@
 #define STRINGINDEX(i) i - 1 // stringi w notatkach KLO są indeksowane od 1, dlatego to makro było konieczne
 #define MAX(a, b) (a > b ? a : b)
 
-/*
+/*Po bardziej szczegółowe wyjaśnienia (w tym idei) odsyłam do notatek :)
 
 Po bardziej szczegółowe wyjaśnienia (w tym idei) odsyłam do notatek (WYkład VI) :)
 
@@ -37,7 +37,7 @@ char* longestCommonSubsequence(char* x, char* y){
                         d[i - 1][j - 1] + 1 : /* jeżeli ostatnie litery podsłów są równe, 
                             zwróć długość LCS(x1...xi-1, y1...yj-1) + 1 (dodajemy po prostu 
                             jedną literkę do lcs podsłów z obciętą ostatnią literą) */
-                    MAX(d[i - 1][j], d[i][j - 1]); /* albo lcs nie będzie kończył się na xi 
+                        MAX(d[i - 1][j], d[i][j - 1]); /* albo lcs nie będzie kończył się na xi 
                             lub nie będzie kończył się na yj */
     
     // Parę brzydkich rzeczy z programowania w c (alokacja pamięci na lcs; null terminator):
